@@ -90,3 +90,189 @@ Installation process of mongodb in ubuntu:
     - composer require jenssegers/mongodb "^3.7"
 
         Make sure that **("jenssegers/mongodb": "^3.7")** present in **composer.json** file in laravel project
+
+
+## 4. Configure laravel project for mongodb connection
+
+* Now go to **config/database.php** file for mongodb connection, add bellow code in **('connections')** array,
+
+    **#Code:**
+
+        'mongodb' => [
+                    'driver'   => 'mongodb',
+                    'host'     => env('MONGO_DB_HOST', 'localhost'),
+                    'port'     => env('MONGO_DB_PORT', 27017),
+                    'database' => env('MONGO_DB_DATABASE'),
+                    'username' => env('MONGO_DB_USERNAME'),
+                    'password' => env('MONGO_DB_PASSWORD'),
+                    'options'  => []
+                ],
+
+
+* Add veriables in **.env** file
+
+    **#Code:**
+
+        MONGO_DB_CONNECTION=mongodb	#mongo connection
+        MONGO_DB_HOST=127.0.0.1	#localhost
+        MONGO_DB_PORT=27017		#default mongo server port
+        MONGO_DB_DATABASE=bookstore	#your database name
+        MONGO_DB_USERNAME=		#add if need
+        MONGO_DB_PASSWORD=		#add if need
+
+
+## 5. Create migration file for create mongodb collection in database
+
+* **Execute below command in terminal inside laravel project**
+
+    - php artisan make:migration create_books_table
+
+* **Edit your migration file and make your collection like bellow**
+
+    **#Code:**
+
+        public function up()
+            {
+                Schema::connection('mongodb')->create('books', function (Blueprint $collection) {
+                    $collection->string('title');
+                    $collection->string('author');
+                    $collection->integer('pages');
+                    $collection->integer('rating');
+                    $collection->array('genres');
+                    $collection->timestamps();
+                });
+            }
+
+            ***Don't forget to add connection with mongodb and migrate the collection.
+
+* **Migrate command for migration mongodb collection**
+
+    - php artisan migrate
+
+* **Now check mongo shell to ensure that migration is done**
+
+    - show dbs
+
+    - use bookstore
+
+    - show collections
+
+
+## 6. Create a model to get elaquent facility when make cruding
+
+* **Create model**
+
+    - php artisan make:model Model/MongoDb/Book
+
+* **Add connection and collection veriables in Book model class**
+
+    **#Code:**
+
+        <?php
+
+        namespace App\Model\MongoDb;
+
+        use Jenssegers\Mongodb\Eloquent\Model;
+
+        class Book extends Model
+        {
+            protected $connection = 'mongodb';
+            protected $collection = 'books';
+        }
+
+
+## 7. Api cruding
+
+* **Create controller and make cruding function's**
+
+    **#Command:**
+
+        - php artisan make:controller BookController
+
+    **#Code:**
+
+        <?php
+
+        namespace App\Http\Controllers;
+
+        use App\Model\MongoDb\Book;
+        use Illuminate\Http\Request;
+
+        class BookController extends Controller
+        {
+            public function index()
+            {
+                $books = Book::get();
+
+                return $books;
+            }
+
+            public function store(Request $request)
+            {
+                $book = new Book();
+                $book->title = $request->title;
+                $book->author = $request->author;
+                $book->pages = $request->pages;
+                $book->rating = $request->rating;
+                $book->genres = $request->genres;
+                $book->save();
+
+                return $book;
+            }
+
+            public function update(Request $request)
+            {
+                $book = Book::find($request->id);
+                $book->title = $request->title;
+                $book->author = $request->author;
+                $book->pages = $request->pages;
+                $book->rating = $request->rating;
+                $book->genres = $request->genres;
+                $book->save();
+
+                return $book;
+            }
+
+            public function delete(Request $request)
+            {
+                $book = Book::find($request->id);
+                $book->delete();
+
+                return $book;
+            }
+        }
+
+
+* **Cruding api's (routes/api.php)**
+
+    **#Code:**
+
+        <?php
+
+        use Illuminate\Support\Facades\Route;
+
+        /*
+        |--------------------------------------------------------------------------
+        | API Routes
+        |--------------------------------------------------------------------------
+        |
+        | Here is where you can register API routes for your application. These
+        | routes are loaded by the RouteServiceProvider within a group which
+        | is assigned the "api" middleware group. Enjoy building your API!
+        |
+        */
+
+        Route::get('/list', 'BookController@index');
+        Route::post('/store', 'BookController@store');
+        Route::post('/update', 'BookController@update');
+        Route::post('/delete', 'BookController@delete');
+
+    Now goto **Postman** create requests and test api's or goto **postman_json_link.txt** file  (attach with the project) copy json link and inport collection on your postman.
+
+    Check api's are working fine.<br>
+    **Don't forget** to run your laravel project on local server,<br>
+    And run your mongodb server.
+
+
+
+
